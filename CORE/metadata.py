@@ -16,7 +16,8 @@ def inventario_features(data):
     for i in data.columns:
         feats.append(i)
         dtypes.append(data[i].dtype.name)
-        missing_pct.append(f'{((data[i].isnull().sum() / data[i].shape[0])*100):.2f}%')
+        pct_missing = float(data[i].isnull().sum() / data[i].shape[0])
+        missing_pct.append(pct_missing)
         #unique_value = 
         unique_values.append(data[i].nunique())
         if data[i].dtype.name in ['object', 'category', 'str', 'bool']:

@@ -12,17 +12,23 @@ from CORE.metadata import inventario_features
 
 
 class AutoOutlierHandler(BaseEstimator, TransformerMixin):
-    def __init__(self, method, strategy=None, return_dataframe = True):
+    def __init__(self, method, strategy=None, return_dataframe = True, exclude_continuous = False):
         self.method = method # iqr, percentile
         self.strategy = strategy # windsorization
         self.return_dataframe = return_dataframe
+        self.exclude_continuous = exclude_continuous
 
     def fit(self, X: pd.DataFrame, y = None):
         X = X.copy()
         # Entrenar por IQR
         df_features = inventario_features(data= X)
-        self.numeric_features = df_features.loc[df_features['semantic_dtype'] == 'Continua'].columns.tolist()
-        resultados = []
+       
+        if self.exclude_continuous:
+            self.numeric_features = df_features.loc[df_features['semantic_dtype'] == 'Continua', 'feature'].values.tolist()
+        else:
+            self.numeric_features = df_features.loc[(df_features['semantic_dtype'] == 'Continua') | (df_features['semantic_dtype'] == 'Conteo'), 'feature'].values.tolist()
+        
+        self.resultados = {}
         if self.method == 'iqr':
             for feat in self.numeric_features:
                 iqr = X[feat].quantile(0.75) - X[feat].quantile(0.25)
@@ -33,9 +39,10 @@ class AutoOutlierHandler(BaseEstimator, TransformerMixin):
                     'upper_limit': upper_limit,
                     'lower_limit': lower_limit
                 }
-                resultados.append(iqr_dict)
+                self.resultados[feat] = iqr_dict
         elif self.method == 'percentile':
             for feat in self.numeric_features:
+                
                 if X.shape[0] < 5000:
                     upper_limit = X[feat].quantile(0.95)
                     lower_limit = X[feat].quantile(0.05)
@@ -50,23 +57,26 @@ class AutoOutlierHandler(BaseEstimator, TransformerMixin):
                     'upper_limit': upper_limit,
                     'lower_limit': lower_limit
                 }
-                resultados.append(percentile_dict)
-            
-        self.resultados_list = resultados
+                self.resultados[feat] = percentile_dict
 
         return self
 
     def transform(self, X: pd.DataFrame):
         X = X.copy()
-
+        #resultados_dict = {self.resultados_list['feature']: d for d in self.resultados_list}
+        X_transformed = {}
         if self.strategy == 'windsorization':
-            for item in self.resultados_list:
-                X[item['feature']] = np.clip(X[item['feature']], min= item['lower_limit'], max= item['upper_limit'])
+            for feat in self.numeric_features:
+                min_value = self.resultados[feat]['lower_limit']
+                max_value = self.resultados[feat]['upper_limit']
+                X_transformed[feat] = np.clip(X[feat], min= min_value, max= max_value)
+
+        X_transformed_df = pd.DataFrame(X_transformed, index= X.index)
 
         if self.return_dataframe:
-            return X
+            return X_transformed_df
 
-        return X.values
+        return X_transformed_df.values
         
 
     def summary(self):

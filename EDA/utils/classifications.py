@@ -384,6 +384,12 @@ class EDAClasificacion:
         target_name = self.target_name
         exclude = ['customer_id']
         data_categorical = data.select_dtypes(include= ['string', 'object', 'category'])
+        n_categoricals = len(data_categorical.columns.to_list())
+
+        if n_categoricals == 0:
+            print("No hay features categóricas en el dataset")
+            return None
+
         data_categorical_w_target = pd.concat([data_categorical, data[target_name]], axis= 1)
         feats_categoricas = [feat for feat in data_categorical.columns.to_list() if feat not in exclude]
         n_feats = len(feats_categoricas)
@@ -418,6 +424,7 @@ class EDAClasificacion:
         plt.close(fig)
 
         return fig
+        
     
     def analisis_target(self):
         data_df = self.data.copy()
@@ -586,10 +593,12 @@ class EDAClasificacion:
         ## Gráfico 3: Mutual information
 
         ## Entrenamiento de MI
-        data_numeric = data.select_dtypes(include='number').drop([target_name], axis= 1)
+        data_numeric = data.select_dtypes(include='number').dropna()
+        target_serie = data_numeric[target_name]
+        data_numeric = data_numeric.drop([target_name], axis= 1)
         mi_scores = mutual_info_classif(
         X= data_numeric,
-        y= data[target_name],
+        y= target_serie,
         discrete_features= 'auto',
         n_neighbors= 3,
         random_state= 42
