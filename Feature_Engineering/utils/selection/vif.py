@@ -5,29 +5,38 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 import sys
 from pathlib import Path
-from matplotlib.pyplot import pyplot as plt
+import matplotlib.pyplot as plt
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.tools.tools import add_constant
 
 PARENT_DIR = Path.cwd().parent.parent.parent
 sys.path.append(f'{str(PARENT_DIR)}')
 
 from CORE.metadata import inventario_features
 
-
 def vif(X: pd.DataFrame):
+
     X = X.copy()
-    df_feats_numerics = X.select_dtypes(include= 'number')
-    df_feats_numerics = df_feats_numerics.dropna()
+
+    X_numeric = X.select_dtypes(include='number').dropna()
+
+    X_const = add_constant(X_numeric)
 
     vif_df = pd.DataFrame({
-        'feature': df_feats_numerics.columns,
+        'feature': X_numeric.columns,
         'VIF': [
-            variance_inflation_factor(df_feats_numerics.values, i)
-            for i in range(df_feats_numerics.shape[1])
+            variance_inflation_factor(
+                X_const.values,
+                i + 1
+            )
+            for i in range(X_numeric.shape[1])
         ]
-    }).sort_values(by= 'VIF', ascending = False)
+    })
 
-    return vif_df
+    return vif_df.sort_values(
+        by='VIF',
+        ascending=False
+    )
 
 
 

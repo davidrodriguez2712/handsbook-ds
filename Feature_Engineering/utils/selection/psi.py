@@ -5,7 +5,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 import sys
 from pathlib import Path
-from matplotlib.pyplot import pyplot as plt
+import matplotlib.pyplot as plt
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 PARENT_DIR = Path.cwd().parent.parent.parent
@@ -106,14 +106,13 @@ def psi_categorical(train, test):
     return psi
 
 
-def dataframe_psi(train_df, test_df):
+def dataframe_psi(train_df, test_df, period_name = None, return_dict = False):
     """
     Calcula PSI para todas las columnas.
     """
     train_df = train_df.copy()
     #X_train, X_test, y_train, y_test = train_test_split()
     results = []
-
     for col in train_df.columns:
 
         if pd.api.types.is_numeric_dtype(train_df[col]):
@@ -132,13 +131,24 @@ def dataframe_psi(train_df, test_df):
             var_type = "categorical"
             interpretacion = interpret_psi(psi= psi)
 
-        results.append({
-            "feature": col,
-            "type": var_type,
-            "psi": psi,
-            "interpretacion": interpretacion
-        })
-
+        if period_name is None:
+            results.append({
+                "feature": col,
+                "type": var_type,
+                "psi": psi,
+                "interpretacion": interpretacion
+            })
+        else:
+            results.append({
+                "feature": col,
+                "type": var_type,
+                "psi": psi,
+                "interpretacion": interpretacion,
+                "period": period_name
+            })
+    print(results)
+    if return_dict:
+        return results
     results = (
         pd.DataFrame(results)
         .sort_values("psi", ascending=False)

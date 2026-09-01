@@ -215,7 +215,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
         condition_1 = (inv_features['semantic_dtype'] == 'Continua')
         condition_2 = (inv_features['semantic_dtype'] == 'Conteo')
         #condition_3 = (inv_features['unique_values'] > 5)
-        self.feats_numeric = inv_features.loc[(condition_1) | (condition_2)]['feature'].values.tolist()
+        self.feats_numeric_ = inv_features.loc[(condition_1) | (condition_2)]['feature'].values.tolist()
         EPS = 1e-6
         dict_features = {}
 
@@ -228,7 +228,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
             stratify= y
         )
         
-        for feat in self.feats_numeric:
+        for feat in self.feats_numeric_:
             tmp = pd.DataFrame({
                 feat: X[feat],
                 'target': y
@@ -269,7 +269,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
         # Paso 2: Crear para los NA su log odds. 
         X_temp = X.copy()
         X_temp[TARGET] = y
-        self.dict_log_odds_null = {}
+        self.dict_log_odds_null_ = {}
         col_log_odds = [c for c in X_temp.columns.tolist() if c.endswith('_log_odds')]
         col_feats = [c.replace('_log_odds', '') for c in col_log_odds]
         for feat in col_feats:
@@ -293,7 +293,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                 X_temp[feat] = X_temp[feat].fillna(
                     log_odds_null
                 )
-                self.dict_log_odds_null[feat] = log_odds_null
+                self.dict_log_odds_null_[feat] = log_odds_null
 
             else:
                 global_target_mean = (
@@ -310,7 +310,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                     safe_target_mean / (1 - safe_target_mean)
                 )
 
-                self.dict_log_odds_null[feat] = global_log_odds
+                self.dict_log_odds_null_[feat] = global_log_odds
 
 
         # Paso 3: Crear los scatter (log odds vs feature)
@@ -362,9 +362,9 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
         col_features_log_odss = [c for c in X_temp.columns.tolist() if c.endswith('_log_odds')]
         col_features = [c.replace('_log_odds', '') for c in col_features_log_odss]
         col_features_mean = [c.replace('_log_odds', '_mean') for c in col_features_log_odss]
-        self.transformations = {}
-        self.rules = []
-        self.functions_details = {}
+        self.transformations_ = {}
+        self.rules_ = []
+        self.functions_details_ = {}
 
         for feat, feat_log_odds, feat_mean in zip(col_features, col_features_log_odss, col_features_mean):
 
@@ -377,7 +377,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
 
             z = ((x - x_mean) / x_std)
 
-            X_val[feat] = X_val[feat].fillna(self.dict_log_odds_null[feat])
+            X_val[feat] = X_val[feat].fillna(self.dict_log_odds_null_[feat])
 
             # Función polinómica de grado 1
             coefficients_pol1 = np.polyfit(x= z, y = y, deg = 1)
@@ -386,14 +386,16 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                 'degree': 1,
                 'coefficients': coefficients_pol1,
                 'r2': r2_score(y, np.polyval(coefficients_pol1, z)),
-                'predict': lambda x_new, x_mean= x_mean, x_std = x_std, coefficients_pol1 = coefficients_pol1: 
-                np.polyval(coefficients_pol1, (x_new - x_mean) / x_std)
+                'x_mean': x_mean,
+                'x_std': x_std
+                #'predict': lambda x_new, x_mean= x_mean, x_std = x_std, coefficients_pol1 = coefficients_pol1: 
+                #np.polyval(coefficients_pol1, (x_new - x_mean) / x_std)
             }
             
-            pred_val_pol1 = dict_var['polynomial_1']['predict'](X_val[feat])
+            pred_val_pol1 = np.polyval(coefficients_pol1, X_val[feat])
             pol1_auc = self._roc_auc(y_val, pred_val_pol1)
 
-            pred_train_pol1 = dict_var['polynomial_1']['predict'](d[feat])
+            pred_train_pol1 = np.polyval(coefficients_pol1, d[feat])
             pol1_auc_train = self._roc_auc(d[TARGET], pred_train_pol1)
 
             # Función polinómica de grado 2
@@ -403,13 +405,15 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                 'degree': 2,
                 'coefficients': coefficients_pol2,
                 'r2': r2_score(y, np.polyval(coefficients_pol2, z)),
-                'predict': lambda x_new, x_mean= x_mean, x_std = x_std, coefficients_pol2 = coefficients_pol2:
-                np.polyval(coefficients_pol2, (x_new - x_mean) / x_std)
+                'x_mean': x_mean,
+                'x_std': x_std
+                #'predict': lambda x_new, x_mean= x_mean, x_std = x_std, coefficients_pol2 = coefficients_pol2:
+                #np.polyval(coefficients_pol2, (x_new - x_mean) / x_std)
             }
-            pred_val_pol2 = dict_var['polynomial_2']['predict'](X_val[feat])
+            pred_val_pol2 = np.polyval(coefficients_pol2, X_val[feat])
             pol2_auc = self._roc_auc(y_val, pred_val_pol2)
 
-            pred_train_pol2 = dict_var['polynomial_2']['predict'](d[feat])
+            pred_train_pol2 = np.polyval(coefficients_pol2, d[feat])
             pol2_auc_train = self._roc_auc(d[TARGET], pred_train_pol2)
 
             # Función polinómica de grado 3
@@ -419,14 +423,16 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                 'degree': 3,
                 'coefficients': coefficients_pol3,
                 'r2': r2_score(y, np.polyval(coefficients_pol3, z)),
-                'predict': lambda x_new, x_mean = x_mean, x_std = x_std, coefficients_pol3 = coefficients_pol3:
-                np.polyval(coefficients_pol3, (x_new - x_mean) / x_std)
+                'x_mean': x_mean,
+                'x_std': x_std
+                #'predict': lambda x_new, x_mean = x_mean, x_std = x_std, coefficients_pol3 = coefficients_pol3:
+                #np.polyval(coefficients_pol3, (x_new - x_mean) / x_std)
 
             }
-            pred_val_pol3 = dict_var['polynomial_3']['predict'](X_val[feat])
+            pred_val_pol3 = np.polyval(coefficients_pol3, X_val[feat])
             pol3_auc = self._roc_auc(y_val, pred_val_pol3)
 
-            pred_train_pol3 = dict_var['polynomial_3']['predict'](d[feat])
+            pred_train_pol3 = np.polyval(coefficients_pol3, d[feat])
             pol3_auc_train = self._roc_auc(d[TARGET], pred_train_pol3)
 
             ## Función logarítmica
@@ -452,14 +458,16 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                 'type': 'logarithmic',
                 'coefficients': param_log,
                 'r2': r2_score(X_temp_filtered[feat_log_odds], self._logarithmic_function(z, *param_log)),
-                'predict': lambda x_new, x_log_mean = x_log_mean, x_log_std = x_log_std, param_log = param_log:
-                (self._logarithmic_function( ( np.log1p(x_new) - x_log_mean) / x_log_std , *param_log ))
+                'x_mean': x_log_mean,
+                'x_std': x_log_std
+                #'predict': lambda x_new, x_log_mean = x_log_mean, x_log_std = x_log_std, param_log = param_log:
+                #(self._logarithmic_function( ( np.log1p(x_new) - x_log_mean) / x_log_std , *param_log ))
             }
 
-            pred_val_log = dict_var['logarithmic']['predict'](X_val[feat])
+            pred_val_log = self._logarithmic_function( (np.log1p(X_val[feat]) - x_log_mean) / x_log_std, *param_log)
             log_auc = self._roc_auc(y_val, pred_val_log)
 
-            pred_train_log = dict_var['logarithmic']['predict'](X_temp_filtered[feat])
+            pred_train_log = self._logarithmic_function( (np.log1p(d[feat]) - x_log_mean) / x_log_std, *param_log)
             log_auc_train = self._roc_auc(X_temp_filtered[TARGET], pred_train_log)
             
             # Función exponencial
@@ -485,7 +493,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
             # pred_train_exp = dict_var['exponential']['predict'](d[feat])
             # exp_auc_train = self._roc_auc(d[TARGET], pred_train_exp)
 
-            self.transformations[feat] = dict_var
+            self.transformations_[feat] = dict_var
 
             summary = pd.DataFrame({
                 'feature': feat,
@@ -496,7 +504,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                 'parameters': [dict_var['polynomial_1']['coefficients'], dict_var['polynomial_2']['coefficients'], dict_var['polynomial_3']['coefficients'], dict_var['logarithmic']['coefficients']]
             }).sort_values(by= 'auc_score_val', ascending= False)
 
-            self.functions_details[feat] = summary
+            self.functions_details_[feat] = summary
 
             best_function = summary.iloc[0]['function']
             best_function_dict = dict_var[best_function]
@@ -504,7 +512,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
             best_auc_score_val = summary.iloc[0]['auc_score_val']
             best_r2_score = summary.iloc[0]['r2_score']
             #self.rules[feat] = best_function_dict
-            self.rules.append({
+            self.rules_.append({
                 'feat': feat,
                 'function': best_function,
                 'auc_score_train': best_auc_score_train,
@@ -513,7 +521,7 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
             })
 
         if self.show_details:
-            df_rules = pd.DataFrame(self.rules)
+            df_rules = pd.DataFrame(self.rules_)
             display(df_rules)
 
         return self
@@ -525,18 +533,21 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
             y = y.copy()
         transformed_features = {}
         comparative_list = []
-        rules_dict = {c['feat']:c for c in self.rules}
+        rules_dict = {c['feat']:c for c in self.rules_}
         #display(self.rules)
         #display(rules_dict)
         #display(self.dict_log_odds_null)
         auc_score_test = np.nan
-        for feat in self.feats_numeric:
+        for feat in self.feats_numeric_:
             best_function = rules_dict[feat]['function']
-            
+            x_mean = self.transformations_[feat][best_function]['x_mean']
+            x_std = self.transformations_[feat][best_function]['x_std']
+            coeff = self.transformations_[feat][best_function]['coefficients']
+
             if best_function != 'logarithmic':
-                X[feat] = X[feat].fillna(self.dict_log_odds_null[feat])
-                # en un futuro considerar la aplicación de mask para logaritmo > 1
-                transformed_features[f'{feat}_log_odds'] = self.transformations[feat][best_function]['predict'](X[feat])
+                X[feat] = X[feat].fillna(self.dict_log_odds_null_[feat])
+                X[feat] = (X[feat] - x_mean) / x_std
+                transformed_features[f'{feat}_log_odds'] = np.polyval(coeff, X[feat])
                 if y is not None:
                     auc_score_test = roc_auc_score(
                         y,
@@ -549,7 +560,8 @@ class Logit_Smoothing_Rolling(BaseEstimator, TransformerMixin):
                     'auc_score_test': auc_score_test
                 })
             elif best_function == 'logarithmic':
-                transformed_features[f'{feat}_log_odds'] = self.transformations[feat][best_function]['predict'](X[feat]).fillna(self.dict_log_odds_null[feat])
+                X[feat] = X[feat].where( X[feat] > -1, np.nan )
+                transformed_features[f'{feat}_log_odds'] =  self._logarithmic_function( (np.log1p(X[feat]) - x_mean) / x_std, *coeff ).fillna(self.dict_log_odds_null_[feat])
                 if y is not None:
                     auc_score_test = roc_auc_score(
                         y,

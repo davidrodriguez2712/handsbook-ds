@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 import sys
 from pathlib import Path
-from matplotlib.pyplot import pyplot as plt
+import matplotlib.pyplot as plt
 from Feature_Engineering.utils.selection.iv import information_value
 
 PARENT_DIR = Path.cwd().parent.parent.parent
@@ -12,7 +12,7 @@ sys.path.append(f'{str(PARENT_DIR)}')
 
 from CORE.metadata import inventario_features
 
-class Binning(MinMaxScaler, RobustScaler):
+class Binning(BaseEstimator, TransformerMixin):
     def __init__(self, strategy = 'width', show_dataframe = True):
         self.strategy = strategy
         self.show_dataframe = show_dataframe
@@ -41,7 +41,8 @@ class Binning(MinMaxScaler, RobustScaler):
                     duplicates= 'drop'
                 )
 
-            X.loc[X['feat'].isna(), 'bins'] = 'MISSING'
+            X['bins'] = X['bins'].astype('object')
+            X.loc[X[feat].isna(), 'bins'] = 'MISSING'
 
             self.feat_bins[feat] = {
                 'feature': feat,
@@ -60,13 +61,16 @@ class Binning(MinMaxScaler, RobustScaler):
 
         return self
 
-    def transform(self, X_base: pd.DataFrame, y_base: pd.Series, operation = 'iv', X_comparative_1: pd.DataFrame = None, y_comparative_1: pd.Series = None):
+    def transform(self, X: pd.DataFrame, y: pd.Series, operation = 'iv'):
+        X_base = X.copy()
+        y_base = y.copy()
 
         if operation == 'iv':
+            print(type(y_base))
             df_iv = information_value(
-                feat_bins= self.feat_bins,
                 X= X_base,
                 y= y_base,
+                feat_bins= self.feat_bins,
                 feat_numeric= self.feats_numeric,
                 feat_cat= self.feats_cat
             )
@@ -75,13 +79,6 @@ class Binning(MinMaxScaler, RobustScaler):
 
         return 'Operación no identificada'
 
-class EqualFrecuencyBinning:
-    def __init__(self):
-        pass
-
-class OptimalBinning:
-    def __init__(self):
-        pass
         
         
         

@@ -1,14 +1,10 @@
 import pandas as pd
 import numpy as np
-import sys
-from pathlib import Path
-import os
-import matplotlib.pyplot as plt
-import seaborn as sns
-import missingno as msno
-from pandas.api.types import is_numeric_dtype, is_string_dtype, is_datetime64_any_dtype
-from sklearn.feature_selection import mutual_info_classif
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+
+def get_first_datetime(data: pd.DataFrame):
+    datetime_cols = data.select_dtypes(include='datetime')
+    return None if datetime_cols.empty else datetime_cols.iloc[:,0]
 
 
 def data_overview(data: pd.DataFrame, target_name, tipo_problema: str):
@@ -57,6 +53,29 @@ def data_overview(data: pd.DataFrame, target_name, tipo_problema: str):
     tipo_problema = tipo_problema
     # Target
     target = target_name
+    # Target Rate (%)
+    target_rate = f'{(data[target_name].mean()*100):.2f}%'
+    # Ratio Desbalanceo
+    ###
+    # No event rate (%)
+    no_event_rate = f'{((data[target_name] == 0).mean()*100):.2f}%'
+    # Ratio Desbalanceo
+    ###
+    ratio_desbalanceo = round(((data[target_name] == 0).mean()) / (data[target_name].mean()), 0)
+
+    fecha = get_first_datetime(data)
+    if fecha is None:
+        fecha_min = fecha_max = periodos = 'No disponible'
+    else:
+        # Fecha Min
+        fecha_min = data.select_dtypes(include= 'datetime').iloc[:,0].min()
+        # Fecha MAX
+        fecha_max = data.select_dtypes(include= 'datetime').iloc[:,0].max()
+        # Períodos
+        periodos = (
+            (fecha_max.year - fecha_min.year) * 12 +
+            (fecha_max.month - fecha_min.month) + 1
+        )
     df_data_overview = pd.DataFrame({
         'Filas': filas,
         'Columnas': columnas,
@@ -73,37 +92,12 @@ def data_overview(data: pd.DataFrame, target_name, tipo_problema: str):
         'Features Alta Cardinalidad': feat_alta_cardinalidad,
         'Features Baja Cardinalidad': feat_baja_cardinalidad,
         'Tipo Problema': tipo_problema,
-        'Target': target_name
+        'Target': target_name,
+        'Target Rate (%)': target_rate,
+        'No event Rate (%)': no_event_rate,
+        'Ratio Desbalanceo': ratio_desbalanceo,
+        'Fecha Min': fecha_min,
+        'Fecha Max': fecha_max,
+        'N° Períodos': periodos 
     }, index= ['Data Overview'])
     return df_data_overview.T
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
