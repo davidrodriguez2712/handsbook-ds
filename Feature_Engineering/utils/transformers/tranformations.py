@@ -4,10 +4,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.preprocessing import PowerTransformer, FunctionTransformer
 import sys
 from pathlib import Path
-from matplotlib.pyplot import pyplot as plt
+import matplotlib.pyplot as plt
 
-PARENT_DIR = Path.cwd().parent.parent.parent
-sys.path.append(f'{str(PARENT_DIR)}')
+PARENT_DIR = Path(__file__).resolve().parents[3]
+sys.path.append(str(PARENT_DIR))
 
 from CORE.metadata import inventario_features
 

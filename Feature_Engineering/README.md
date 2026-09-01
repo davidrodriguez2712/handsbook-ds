@@ -35,12 +35,12 @@ Feature_Engineering/
 
 ## Cómo importar
 
-Igual que el resto del monorepo: se agrega la raíz a `sys.path` (asume cwd = `.../<proyecto>/notebooks/`, 3 niveles bajo la raíz). Varios módulos hacen internamente `from CORE.metadata import inventario_features`, así que esa suposición de cwd debe cumplirse.
+Los módulos que necesitan `CORE.metadata` se autoresuelven vía `Path(__file__)`, así que funcionan desde cualquier cwd. El notebook solo necesita tener la raíz del repo en el `sys.path` para poder importar los paquetes:
 
 ```python
 import sys
 from pathlib import Path
-sys.path.append(str(Path.cwd().parent.parent.parent))
+sys.path.append(str(Path.cwd().parents[2]))   # ajusta el índice según dónde esté tu notebook
 
 from Feature_Engineering.utils.transformers.woe import Logit_Smoothing_Rolling
 from Feature_Engineering.utils.transformers.outliers import AutoOutlierHandler
@@ -77,7 +77,7 @@ Todos siguen el patrón `BaseEstimator, TransformerMixin` (fit/transform) para p
 
 | Clase | `__init__` | Qué hace |
 |---|---|---|
-| `TransformationMethods` | `strategy` (`'yeo-johnson'` \| `'box-cox'` \| `'log1p'`), `features_num` (lista), `return_dataframe=True` | Transformaciones de potencia / logarítmica sobre `features_num` (`PowerTransformer` o `FunctionTransformer(log1p)`). `summary(X)` → figura antes/después. **Bug de import** en la línea 7 (`from matplotlib.pyplot import pyplot as plt`); corregir a `import matplotlib.pyplot as plt` antes de usar. |
+| `TransformationMethods` | `strategy` (`'yeo-johnson'` \| `'box-cox'` \| `'log1p'`), `features_num` (lista), `return_dataframe=True` | Transformaciones de potencia / logarítmica sobre `features_num` (`PowerTransformer` o `FunctionTransformer(log1p)`). `summary(X)` → figura antes/después. |
 
 ### `woe.py`
 
@@ -148,7 +148,6 @@ dataframe_psi(X_train, X_test)                         # estabilidad train vs te
 
 - **`WOEClassic` no está terminado**: en `fit` el bucle de "continuas" itera sobre `FEATS_NUM_CONTEO` (copy-paste), `FEATS_NUM` es un DataFrame y se usa como lista, el mapping categórico se guarda como `set` en vez de `dict`, y usa una sintaxis de `groupby().agg((nombre, func))` que no es la API actual de pandas. Usar `Logit_Smoothing_Rolling` mientras tanto.
 - **`Binning.transform` rompe el contrato de sklearn** (pide `y`, solo hace IV) — no lo pongas dentro de un `Pipeline`.
-- **`tranformations.py`**: import inválido de matplotlib (línea 7).
 - `Logit_Smoothing_Rolling` hace un `train_test_split` **interno** en `fit`: el modelo se entrena solo con el 70% de lo que le pases. Tenlo en cuenta si ya venías con tu propio split.
 - `correlation()` ordena por correlación con signo (no por valor absoluto): las correlaciones negativas fuertes quedan al final de la tabla.
 - Convención del repo: comentarios, docstrings y nombres de variables en **español**.

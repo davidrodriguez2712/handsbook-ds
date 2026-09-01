@@ -8,8 +8,8 @@ from sklearn.metrics import roc_auc_score, f1_score, recall_score, precision_rec
 import joblib
 from matplotlib.ticker import PercentFormatter
 import shap
-PARENT_DIR = Path.cwd().parent.parent.parent
-sys.path.append(f'{str(PARENT_DIR)}')
+PARENT_DIR = Path(__file__).resolve().parents[2]
+sys.path.append(str(PARENT_DIR))
 
 from Feature_Engineering.utils.transformers.outliers import AutoOutlierHandler
 from Feature_Engineering.utils.selection.psi import dataframe_psi

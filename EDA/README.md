@@ -22,12 +22,12 @@ EDA/
 
 ## Cómo importar
 
-Los notebooks resuelven la raíz del monorepo y la agregan a `sys.path` antes de importar (ver `CLAUDE.md` de la raíz):
+El notebook solo necesita tener la raíz del repo en el `sys.path` para importar el paquete (los módulos que necesitan `CORE` ya se autoresuelven vía `Path(__file__)`):
 
 ```python
 import sys
 from pathlib import Path
-sys.path.append(str(Path.cwd().parent.parent.parent))   # cwd == .../<proyecto>/notebooks/
+sys.path.append(str(Path.cwd().parents[2]))   # ajusta el índice según dónde esté tu notebook
 
 from EDA.utils.classifications import EDAClasificacion
 ```

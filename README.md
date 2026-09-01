@@ -20,19 +20,21 @@ Las cinco etapas están operativas de punta a punta. El proyecto sigue en evoluc
 
 ## Convención de imports
 
-El código está pensado para ejecutarse desde notebooks ubicados **3 niveles por debajo** de la raíz del repo. Los notebooks (y varios módulos internos que importan `CORE.metadata`) resuelven la raíz así:
+Los módulos de cada `utils/` que necesitan llegar a `CORE/` u otra etapa **se autoresuelven**: anclan la raíz del repo con `Path(__file__).resolve().parents[N]` y la agregan a `sys.path`. Funcionan desde cualquier directorio de trabajo.
+
+Lo único que sigue necesitando ayuda es el **notebook** (no es un archivo de paquete, no tiene `__file__`): hay que ponerle la raíz del repo en el path una vez, al inicio.
 
 ```python
 import sys
 from pathlib import Path
-sys.path.append(str(Path.cwd().parent.parent.parent))
+sys.path.append(str(Path.cwd().parents[2]))   # ajusta el índice a dónde esté tu notebook
 
 from EDA.utils.classifications import EDAClasificacion
 from Feature_Engineering.utils.selection.gini import gini_rule_selection
 from Training_Model.utils.optuna_tunning import OptunaTunning
 ```
 
-Si ejecutas este código con otro directorio de trabajo (script suelto, `python -c`, tests), ajusta el `sys.path` a mano — los imports relativos a la raíz fallan si el cwd no está donde se espera.
+(Al empaquetar el repo como librería, este último paso también desaparece.)
 
 ## Entorno
 
