@@ -6,8 +6,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, f1_score, recall_score, precision_recall_curve, roc_curve, average_precision_score, brier_score_loss
 import joblib
-PARENT_DIR = Path.cwd().parent.parent.parent
-sys.path.append(f'{str(PARENT_DIR)}')
+PARENT_DIR = Path(__file__).resolve().parents[2]
+sys.path.append(str(PARENT_DIR))
 
 
 def threshold_f1(precision, recall):

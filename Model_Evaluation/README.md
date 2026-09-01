@@ -11,10 +11,12 @@ Model_Evaluation/
 
 ## Cómo importar
 
+`economic_metrics.py` se autoresuelve la raíz del repo vía `Path(__file__)` (funciona desde cualquier cwd); el notebook solo necesita la raíz en el `sys.path`:
+
 ```python
 import sys
 from pathlib import Path
-sys.path.append(str(Path.cwd().parent.parent.parent))   # cwd == .../<proyecto>/notebooks/
+sys.path.append(str(Path.cwd().parents[2]))   # ajusta el índice según dónde esté tu notebook
 
 from Model_Evaluation.economic_metrics import (
     tabla_deciles_completa_saldos, seleccion_deciles_agrupamiento,

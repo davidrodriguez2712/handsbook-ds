@@ -15,18 +15,11 @@ Estado (README.md): EDA terminado, Feature Engineering en progreso, Training/Eva
 
 **No hay build, lint, tests, ni CI.** No hay `requirements.txt`/`environment.yml` en la raíz. El entorno es conda (ver `.vscode/settings.json`). El flujo de trabajo es ejecutar notebooks en Jupyter.
 
-## Resolución de imports (crítico)
+## Resolución de imports
 
-Los notebooks y varios módulos compartidos agregan la raíz del monorepo a `sys.path` en runtime así:
+Los módulos compartidos de cada `utils/` que necesitan llegar a `CORE.metadata` (u otra etapa) anclan la raíz del monorepo con `Path(__file__).resolve().parents[N]` y la agregan a `sys.path`. **Funcionan desde cualquier cwd** (script suelto, `python -c`, tests, otro notebook). El índice `N` depende de la profundidad del archivo: 2 para `EDA/utils/`, `Training_Model/utils/`, `Monitoring/utils/`; 3 para `Feature_Engineering/utils/{transformers,selection}/`; 1 para `Model_Evaluation/economic_metrics.py`.
 
-```python
-PARENT_DIRECTORY_1 = Path.cwd().parent.parent.parent
-sys.path.append(f"{str(PARENT_DIRECTORY_1)}")
-from EDA.utils.classifications import EDAClasificacion
-from Feature_Engineering.utils.transformers.woe import WOEClassic
-```
-
-Esto **asume que el cwd está 3 niveles bajo la raíz** — es decir, `11_Project_Templates/<proyecto>/notebooks/`. Módulos como `Feature_Engineering/utils/selection/feature_selector.py` y `Training_Model/utils/algorithm.py` repiten internamente el mismo `Path.cwd().parent.parent.parent` para llegar a `CORE.metadata`. Si ejecutas ese código con otro cwd (script suelto, `python -c`, tests, notebook en `EDA/examples/`), los imports fallan. Al ejecutar código de estos paquetes fuera de un notebook de proyecto, ajusta el cwd o el `sys.path` manualmente.
+Lo único que aún depende del entorno es el **notebook** (no tiene `__file__`): hay que agregarle la raíz del repo al `sys.path` una vez al inicio para poder importar los paquetes (`sys.path.append(str(Path.cwd().parents[N]))`, con `N` según dónde esté el notebook). Al empaquetar el repo como librería, ese paso también desaparece.
 
 ## Paquetes de la raíz
 

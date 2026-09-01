@@ -4,8 +4,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import sys
 from pathlib import Path
 
-PARENT_DIR = Path.cwd().parent.parent.parent
-sys.path.append(f'{str(PARENT_DIR)}')
+PARENT_DIR = Path(__file__).resolve().parents[3]
+sys.path.append(str(PARENT_DIR))
 
 from CORE.metadata import inventario_features
 

@@ -11,12 +11,12 @@ Training_Model/
     └── calibration.py      <- curvas de calibración, Platt scaling, intervalos de Vasicek
 ```
 
-No hay `__init__.py`; se importa por módulo. Igual que el resto del repo, los imports asumen cwd = `.../<proyecto>/notebooks/` (3 niveles bajo la raíz del monorepo).
+No hay `__init__.py`; se importa por módulo. Los módulos se autoresuelven la raíz del repo vía `Path(__file__)`, así que funcionan desde cualquier cwd; el notebook solo necesita la raíz en el `sys.path`:
 
 ```python
 import sys
 from pathlib import Path
-sys.path.append(str(Path.cwd().parent.parent.parent))
+sys.path.append(str(Path.cwd().parents[2]))   # ajusta el índice según dónde esté tu notebook
 
 from Training_Model.utils.algorithm import initial_models
 from Training_Model.utils.optuna_tunning import OptunaTunning

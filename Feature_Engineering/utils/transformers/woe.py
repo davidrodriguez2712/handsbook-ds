@@ -9,8 +9,8 @@ from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score, roc_auc_score
 from sklearn.model_selection import train_test_split
 
-PARENT_DIR = Path.cwd().parent.parent.parent
-sys.path.append(f'{str(PARENT_DIR)}')
+PARENT_DIR = Path(__file__).resolve().parents[3]
+sys.path.append(str(PARENT_DIR))
 
 from CORE.metadata import inventario_features
 
